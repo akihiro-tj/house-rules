@@ -1,0 +1,78 @@
+name: APM update
+on:
+  workflow_call:
+    inputs:
+      apm-version:
+        description: apm-cli version to install.
+        type: string
+        default: 0.32.0
+    secrets:
+      APM_UPDATE_CLIENT_ID:
+        description: Client ID of the GitHub App that opens the pull request.
+        required: true
+      APM_UPDATE_PRIVATE_KEY:
+        description: Private key of the GitHub App that opens the pull request.
+        required: true
+permissions:
+  contents: read
+jobs:
+  update:
+    name: Update APM dependencies
+    runs-on: ubuntu-24.04
+    env:
+      BRANCH: apm-update
+    steps:
+      # GITHUB_TOKEN で作った PR では CI が動かないので、GitHub App のトークンで push と PR の作成をする
+      - id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ secrets.APM_UPDATE_CLIENT_ID }}
+          private-key: ${{ secrets.APM_UPDATE_PRIVATE_KEY }}
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+      - name: Install APM
+        env:
+          APM_VERSION: ${{ inputs.apm-version }}
+        run: pipx install "apm-cli==$APM_VERSION"
+      - id: update
+        name: Run apm update
+        run: |
+          house_rules_commit() {
+            grep -A6 '^- repo_url: akihiro-tj/house-rules$' apm.lock.yaml \
+              | grep -m1 'resolved_commit:' | awk '{print $2}'
+          }
+          echo "before=$(house_rules_commit)" >> "$GITHUB_OUTPUT"
+          apm update -y
+          echo "after=$(house_rules_commit)" >> "$GITHUB_OUTPUT"
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Open pull request
+        if: steps.update.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+          BEFORE: ${{ steps.update.outputs.before }}
+          AFTER: ${{ steps.update.outputs.after }}
+          REPO: ${{ github.repository }}
+        run: |
+          bot="${APP_SLUG}[bot]"
+          bot_id="$(gh api "/users/${bot}" --jq .id)"
+          git config user.name "$bot"
+          git config user.email "${bot_id}+${bot}@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git add -A
+          git commit -m "Update APM dependencies"
+          git push --force origin "$BRANCH"
+
+          body="house-rules の更新を \`apm update\` で取り込む。"
+          if [ -n "$BEFORE" ] && [ -n "$AFTER" ] && [ "$BEFORE" != "$AFTER" ]; then
+            body+=$'\n\n'"house-rules の変更: https://github.com/akihiro-tj/house-rules/compare/${BEFORE}...${AFTER}"
+          fi
+          number="$(gh pr list --repo "$REPO" --head "$BRANCH" --state open --json number --jq '.[0].number // empty')"
+          if [ -n "$number" ]; then
+            gh pr edit "$number" --repo "$REPO" --body "$body"
+          else
+            gh pr create --repo "$REPO" --head "$BRANCH" --title "house-rules の更新を取り込む" --body "$body"
+          fi

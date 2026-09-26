@@ -5,7 +5,7 @@
 | 種類 | 置き場所 | 各リポへの入れ方 |
 |---|---|---|
 | Claude Code の rules とフック | `packages/` | [APM](https://github.com/microsoft/apm)（`pip install apm-cli`） |
-| composite action | `.github/actions/` | `uses: akihiro-tj/house-rules/.github/actions/<名前>@v1` で参照する |
+| composite action | `.github/actions/` | `uses: akihiro-tj/house-rules/.github/actions/<名前>@main` で参照する |
 | dependabot.yml・.gitignore | `templates/` | コピーする |
 
 ## APM のパッケージ
@@ -30,10 +30,10 @@ targets:
   - claude
 dependencies:
   apm:
-    - akihiro-tj/house-rules/packages/core#v1
-    - akihiro-tj/house-rules/packages/web-react#v1
-    - akihiro-tj/house-rules/packages/cloudflare-workers#v1
-    - akihiro-tj/house-rules/packages/github-actions#v1
+    - akihiro-tj/house-rules/packages/core#main
+    - akihiro-tj/house-rules/packages/web-react#main
+    - akihiro-tj/house-rules/packages/cloudflare-workers#main
+    - akihiro-tj/house-rules/packages/github-actions#main
 executables:
   allow:
     github.com/akihiro-tj/house-rules/packages/core:
@@ -50,7 +50,7 @@ executables:
   - キーは `github.com/` から書く。apm-cli 0.32.0 の `apm install` はこの形でしか照合しない。`apm approve` が書く `akihiro-tj/house-rules/packages/core#<version>` では通らない
   - `apm policy explain` と `apm audit` は、この設定を正しく反映しない。前者はフックを blocked と表示する。後者は superpowers のフックが展開されていないことを drift として報告する
 
-`#v1` で入れても、lockfile がコミットを固定する。新しい内容を取り込むときは `apm update` を実行する。
+`#main` で入れても、lockfile がコミットを固定する。新しい内容を取り込むときは `apm update` を実行する。
 
 ## GitHub Actions
 
@@ -60,7 +60,7 @@ checkout・pnpm・Node.js（`.node-version`、pnpm のキャッシュ付き）�
 
 ```yaml
 steps:
-  - uses: akihiro-tj/house-rules/.github/actions/setup-node-pnpm@v1
+  - uses: akihiro-tj/house-rules/.github/actions/setup-node-pnpm@main
   - run: pnpm test
 ```
 
@@ -92,10 +92,10 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
-      - uses: akihiro-tj/house-rules/.github/actions/setup-node-pnpm@v1
+      - uses: akihiro-tj/house-rules/.github/actions/setup-node-pnpm@main
       - run: pnpm build
       - id: preview
-        uses: akihiro-tj/house-rules/.github/actions/wrangler-preview@v1
+        uses: akihiro-tj/house-rules/.github/actions/wrangler-preview@main
         with:
           name: ${{ env.PREVIEW_NAME }}
       - name: Smoke test
@@ -111,8 +111,8 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
-      - uses: akihiro-tj/house-rules/.github/actions/setup-node-pnpm@v1
-      - uses: akihiro-tj/house-rules/.github/actions/wrangler-preview-delete@v1
+      - uses: akihiro-tj/house-rules/.github/actions/setup-node-pnpm@main
+      - uses: akihiro-tj/house-rules/.github/actions/wrangler-preview-delete@main
         with:
           name: ${{ env.PREVIEW_NAME }}
 ```
@@ -124,15 +124,15 @@ wrangler はリポの devDependencies から `pnpm exec` で実行する。`jq` 
 `templates/` のファイルをリポにコピーし、必要に応じて書き足す。
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/akihiro-tj/house-rules/v1/templates/dependabot.yml -o .github/dependabot.yml
-curl -fsSL https://raw.githubusercontent.com/akihiro-tj/house-rules/v1/templates/gitignore -o .gitignore
+curl -fsSL https://raw.githubusercontent.com/akihiro-tj/house-rules/main/templates/dependabot.yml -o .github/dependabot.yml
+curl -fsSL https://raw.githubusercontent.com/akihiro-tj/house-rules/main/templates/gitignore -o .gitignore
 ```
 
-## バージョン
+## 更新の届き方
 
-リポ全体で 1 つのバージョンを使う。`v1.0.0` のようなタグに加えて、動くメジャータグ `v1` を付ける。各パッケージの `apm.yml` の `version` はタグと揃える。互換性を壊す変更（rule のファイル名・action の inputs や outputs の変更・削除）はメジャーバージョンを上げる。
+タグは付けず、各リポは `main` を参照する。GitHub Actions は `@main` なので、マージした時点ですべてのリポに届く。APM のパッケージは各リポの lockfile が固定するので、各リポで `apm update` を実行したときに届く。
 
-## 開発
+\1
 
 ```sh
 pip install apm-cli==0.32.0

@@ -67,7 +67,13 @@ jobs:
           git switch -c "$BRANCH"
           git add -A
           git commit -m "Update APM dependencies"
-          git push --force origin "$BRANCH"
+          # 前回の push と中身が同じなら push しない（CI とプレビューを毎回やり直さないため）
+          if git fetch --depth=1 origin "$BRANCH" 2>/dev/null \
+            && [ "$(git rev-parse 'HEAD^{tree}')" = "$(git rev-parse 'FETCH_HEAD^{tree}')" ]; then
+            echo "$BRANCH is already up to date"
+          else
+            git push --force origin "$BRANCH"
+          fi
 
           body="house-rules の更新を \`apm update\` で取り込む。"
           if [ -n "$BEFORE" ] && [ -n "$AFTER" ] && [ "$BEFORE" != "$AFTER" ]; then

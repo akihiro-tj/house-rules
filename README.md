@@ -122,7 +122,7 @@ wrangler はリポの devDependencies から `pnpm exec` で実行する。`jq` 
 
 ### apm-update（reusable workflow）
 
-`apm update` を実行し、差分があれば `apm-update` ブランチに push して PR を作る（開いている PR があれば更新する）。PR の本文には house-rules の変更の比較リンクを載せる。
+`apm update` を実行し、差分があれば `apm-update` ブランチに push して PR を作る（開いている PR があれば更新する）。lockfile の `resolved_commit` だけが変わったとき（パッケージの外の変更）は PR を作らない。PR の本文には house-rules の変更の比較リンクを載せる。
 
 ```yaml
 name: APM update

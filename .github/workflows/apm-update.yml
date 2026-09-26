@@ -45,7 +45,10 @@ jobs:
           echo "before=$(house_rules_commit)" >> "$GITHUB_OUTPUT"
           apm update -y
           echo "after=$(house_rules_commit)" >> "$GITHUB_OUTPUT"
-          if [ -n "$(git status --porcelain)" ]; then
+          # lockfile の resolved_commit だけが変わったとき（パッケージの外の変更）は PR を作らない
+          other_files="$(git status --porcelain | grep -v ' apm\.lock\.yaml$' || true)"
+          lock_changes="$(git diff -U0 apm.lock.yaml | grep '^[-+]' | grep -v '^\(---\|+++\) ' | grep -v '^[-+] *resolved_commit: ' || true)"
+          if [ -n "$other_files" ] || [ -n "$lock_changes" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
       - name: Open pull request

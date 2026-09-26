@@ -42,6 +42,8 @@ expected = {
     "language.md": None,
     "public-content.md": None,
     "specs.md": None,
+    "git.md": None,
+    "subagents.md": None,
     "react.md": ["DESIGN.md", "src/**/*.tsx"],
     "testing.md": None,
     "pnpm.md": None,

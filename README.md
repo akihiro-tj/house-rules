@@ -13,7 +13,7 @@
 
 | パッケージ | 中身 |
 |---|---|
-| `packages/core` | CLAUDE.md と rules の書き方・言語・公開コンテンツ・spec の運用・git の運用・サブエージェントの扱い、superpowers（`obra/superpowers`）と SessionStart フック |
+| `packages/core` | CLAUDE.md と rules の書き方・APM で展開したファイルの扱い・言語・公開コンテンツ・spec の運用・git の運用・サブエージェントの扱い、superpowers（`obra/superpowers`）と SessionStart フック |
 | `packages/web-react` | 画面のコード（`DESIGN.md`・`src/**/*.tsx`）・検証・pnpm |
 | `packages/cloudflare-workers` | Cloudflare Workers の設定 |
 | `packages/github-actions` | GitHub Actions のワークフロー |

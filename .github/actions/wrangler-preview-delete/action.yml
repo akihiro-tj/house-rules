@@ -1,0 +1,14 @@
+name: Delete Worker preview
+description: Delete a Cloudflare Workers preview created by the wrangler-preview action.
+inputs:
+  name:
+    description: Preview name passed to wrangler preview delete --name.
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Delete Worker preview
+      shell: bash
+      env:
+        PREVIEW_NAME: ${{ inputs.name }}
+      run: pnpm exec wrangler preview delete --name "$PREVIEW_NAME" --skip-confirmation

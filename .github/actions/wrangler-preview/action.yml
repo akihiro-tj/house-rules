@@ -1,0 +1,41 @@
+name: Create Worker preview
+description: Create a Cloudflare Workers preview with wrangler, output its URL, and create or update the preview comment on the pull request.
+inputs:
+  name:
+    description: Preview name passed to wrangler preview --name.
+    required: true
+  github-token:
+    description: Token used to comment on the pull request. Needs pull-requests write permission.
+    default: ${{ github.token }}
+outputs:
+  url:
+    description: Preview URL.
+    value: ${{ steps.preview.outputs.url }}
+runs:
+  using: composite
+  steps:
+    - id: preview
+      name: Create Worker preview
+      shell: bash
+      env:
+        PREVIEW_NAME: ${{ inputs.name }}
+      run: |
+        pnpm exec wrangler preview --name "$PREVIEW_NAME" --json > preview.log
+        cat preview.log
+        # --json でもアセットのアップロード進捗が先に出力されるので、JSON の部分だけを取り出す
+        sed -n '/^{/,$p' preview.log > preview.json
+        url="$(jq -r '.preview.urls[0] // empty' preview.json)"
+        test -n "$url"
+        echo "url=$url" >> "$GITHUB_OUTPUT"
+    - name: Comment preview URL on PR
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        URL: ${{ steps.preview.outputs.url }}
+        SHA: ${{ github.event.pull_request.head.sha }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        REPO: ${{ github.repository }}
+      run: |
+        gh pr comment "$PR_NUMBER" --repo "$REPO" \
+          --edit-last --create-if-none \
+          --body "プレビュー: [$URL]($URL)（コミット ${SHA:0:7}）"

@@ -1,0 +1,6 @@
+name: house-rules-core
+version: 1.0.0
+description: どのプロジェクトにも入れる共通ルールと superpowers
+dependencies:
+  apm:
+    - obra/superpowers#v6.4.1

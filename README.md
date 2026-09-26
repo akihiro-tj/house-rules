@@ -6,6 +6,7 @@
 |---|---|---|
 | Claude Code の rules とフック | `packages/` | [APM](https://github.com/microsoft/apm)（`pip install apm-cli`） |
 | composite action | `.github/actions/` | `uses: akihiro-tj/house-rules/.github/actions/<名前>@main` で参照する |
+| reusable workflow | `.github/workflows/apm-update.yml` | `uses: akihiro-tj/house-rules/.github/workflows/apm-update.yml@main` で呼ぶ |
 | dependabot.yml・.gitignore | `templates/` | コピーする |
 
 ## APM のパッケージ
@@ -119,6 +120,38 @@ jobs:
 
 wrangler はリポの devDependencies から `pnpm exec` で実行する。`jq` と `gh` は GitHub のランナーに入っているものを使う。
 
+### apm-update（reusable workflow）
+
+`apm update` を実行し、差分があれば `apm-update` ブランチに push して PR を作る（開いている PR があれば更新する）。PR の本文には house-rules の変更の比較リンクを載せる。
+
+```yaml
+name: APM update
+on:
+  schedule:
+    - cron: "0 0 * * 1" # 月曜 9:00（日本時間）
+  workflow_dispatch:
+jobs:
+  update:
+    uses: akihiro-tj/house-rules/.github/workflows/apm-update.yml@main
+    secrets: inherit
+```
+
+`GITHUB_TOKEN` で作った PR では CI が動かないので、GitHub App のトークンで push と PR の作成をする。最初に一度だけ次を行う。
+
+1. GitHub App を作る（Settings → Developer settings → GitHub Apps → New GitHub App）
+   - Webhook の Active は外す
+   - Repository permissions は Contents と Pull requests を Read and write にする
+   - Where can this GitHub App be installed? は Only on this account にする
+2. App の設定画面で秘密鍵を作り（Generate a private key）、Client ID を控える
+3. App を使うリポにインストールする（Install App）
+
+リポごとに次の Secrets を登録する（Settings → Secrets and variables → Actions）。
+
+| Secret | 値 |
+|---|---|
+| `APM_UPDATE_CLIENT_ID` | App の Client ID |
+| `APM_UPDATE_PRIVATE_KEY` | 秘密鍵（.pem）の中身 |
+
 ## テンプレート
 
 `templates/` のファイルをリポにコピーし、必要に応じて書き足す。
@@ -130,9 +163,9 @@ curl -fsSL https://raw.githubusercontent.com/akihiro-tj/house-rules/main/templat
 
 ## 更新の届き方
 
-タグは付けず、各リポは `main` を参照する。GitHub Actions は `@main` なので、マージした時点ですべてのリポに届く。APM のパッケージは各リポの lockfile が固定するので、各リポで `apm update` を実行したときに届く。
+タグは付けず、各リポは `main` を参照する。GitHub Actions は `@main` なので、マージした時点ですべてのリポに届く。APM のパッケージは各リポの lockfile が固定するので、apm-update ワークフローが作る PR をマージしたとき（または各リポで `apm update` を実行したとき）に届く。
 
-\1
+## 開発
 
 ```sh
 pip install apm-cli==0.32.0

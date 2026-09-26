@@ -39,6 +39,7 @@ errors = []
 # rule ごとの期待する paths（None は paths なしの常時読み込み）
 expected = {
     "instructions.md": ["CLAUDE.md", ".claude/rules/**"],
+    "apm.md": [".claude/**"],
     "language.md": None,
     "public-content.md": None,
     "specs.md": None,

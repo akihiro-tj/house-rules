@@ -13,4 +13,5 @@
 - rule のファイル名は、展開先の `.claude/rules/` で各リポ固有の rule（`ui.md`・`worker.md` など）とぶつからない名前にする
 - タグは付けず、各リポは `main` を参照する。マージした変更はそのまますべてのリポに届くので、rule のファイル名・action の inputs や outputs を変えたり消したりするときは、PR の本文に各リポで要る対応を書く
 - action は SHA で固定し、コメントでバージョンを書く
+- `rulesets/main.json` は各リポに自動では届かない。変えたら、PR の本文に各リポで `scripts/apply-ruleset.sh` を実行し直すことを書く
 - rules・フック・パッケージ構成を変えたら `scripts/check-packages.sh` の期待値も直す

@@ -8,6 +8,7 @@
 | composite action | `.github/actions/` | `uses: akihiro-tj/house-rules/.github/actions/<名前>@main` で参照する |
 | reusable workflow | `.github/workflows/apm-update.yml` | `uses: akihiro-tj/house-rules/.github/workflows/apm-update.yml@main` で呼ぶ |
 | dependabot.yml・.gitignore | `templates/` | コピーする |
+| main を守るルールセット | `rulesets/main.json` | `scripts/apply-ruleset.sh` で作る |
 
 ## APM のパッケージ
 
@@ -160,6 +161,28 @@ jobs:
 curl -fsSL https://raw.githubusercontent.com/akihiro-tj/house-rules/main/templates/dependabot.yml -o .github/dependabot.yml
 curl -fsSL https://raw.githubusercontent.com/akihiro-tj/house-rules/main/templates/gitignore -o .gitignore
 ```
+
+## ルールセット
+
+各リポのデフォルトブランチを GitHub のルールセットで守る。共通の rule（git.md）の「main に直接コミットしない。PR を作り、CI が通ってからマージする」を GitHub 側で強制するため。
+
+`rulesets/main.json` の中身:
+
+- 削除と強制 push を禁止する
+- PR を必須にする。承認は 0 人（一人で運用しているため）、マージ方法は merge・squash・rebase のすべてを許可する
+- 必須ステータスチェックはリポごとに渡す（GitHub Actions のジョブの `name`）。ブランチを最新にしてからのマージ（strict）は求めない。毎日来る apm-update の PR のたびに更新作業が要るようになるため
+- バイパスできる人はいない
+
+GitHub はリポ内の JSON を読んで自動では反映しないので、スクリプトで作る。同じ名前（`main`）のルールセットがあれば上書きするので、テンプレートを変えたら同じコマンドをもう一度実行する。リポの管理者権限でログインした `gh` と `jq` が要る。
+
+```sh
+bash scripts/apply-ruleset.sh akihiro-tj/world-history-map "Check and build"
+bash scripts/apply-ruleset.sh akihiro-tj/house-rules "Lint workflows" "Check APM packages"
+```
+
+チェック名を変えたとき（ジョブの `name` を変えたときなど）も、新しい名前で実行し直す。古い名前のままだと、そのチェックが来ないまま PR をマージできなくなる。
+
+apm-update の PR は、GitHub App が `apm-update` ブランチに push して作るので、このルールセットでは止まらない（App のトークンで作った PR では CI も動く）。マージは人が行う。
 
 ## 更新の届き方
 

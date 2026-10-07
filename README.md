@@ -190,6 +190,8 @@ apm-update の PR は、GitHub App が `apm-update` ブランチに push して�
 
 ## 開発
 
+Claude Code のクラウドセッションで実行するときは、先に pip で APM を入れる。バージョンは CI に揃える。
+
 ```sh
 pip install apm-cli==0.32.0
 bash scripts/check-packages.sh   # 全パッケージをダミーのプロジェクトに入れ、rules とフックの展開を確かめる
